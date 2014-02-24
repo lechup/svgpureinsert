@@ -65,7 +65,7 @@ class syntax_plugin_svgpureInsert extends DokuWiki_Syntax_Plugin
                     //src
                     $GLOBALS['data_svgpureInsert']['src'] = $p_match[2];
                     if (strpos($GLOBALS['data_svgpureInsert']['src'], "http://") === false && strpos($GLOBALS['data_svgpureInsert']['src'], "ftp://") === false)
-                        $GLOBALS['data_svgpureInsert']['src'] = 'data/media/' . str_replace(':', '/', $GLOBALS['data_svgpureInsert']['src']);
+                        $GLOBALS['data_svgpureInsert']['src'] = 'data/media'.str_replace(':', '/', $GLOBALS['data_svgpureInsert']['src']);
                     $GLOBALS['data_svgpureInsert']['src'] = urlencode($GLOBALS['data_svgpureInsert']['src'] . '.svg');
                     //
                 }
