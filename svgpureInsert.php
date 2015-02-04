@@ -168,5 +168,3 @@ if(!file_exists($cache_file) or !SVG_CACHE) {
     //PRINT CACHE
     echo($buff);
 }
-//
-?>

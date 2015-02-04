@@ -183,5 +183,3 @@ class syntax_plugin_svgpureInsert extends DokuWiki_Syntax_Plugin {
         );
     }
 }
-
-?>
