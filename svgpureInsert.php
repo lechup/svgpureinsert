@@ -29,7 +29,7 @@ define('SVG_CACHE_DIR', SVG_ROOT_PATH . 'lib/plugins/svgpureInsert/cache/'); //r
 // *********** CODE, be sure what you are doing while editing stuff below ************* //
 
 //URL check and other stuff check
-if (isset($_GET['url']))
+if(isset($_GET['url']))
     $URL = $_GET['url'];
 else {
     echo "There is no file to draw!!!";
@@ -39,23 +39,23 @@ else {
 $exp = explode('.', $URL);
 $exp = end($exp);
 
-if ($exp != 'svg') {
-    echo ('You want to read file with non svg extension...');
+if($exp != 'svg') {
+    echo('You want to read file with non svg extension...');
     exit;
 }
 
-if (isset($_GET['width']))
+if(isset($_GET['width']))
     $width = $_GET['width'];
 else
     $width = 0;
 
-if (isset($_GET['height']))
+if(isset($_GET['height']))
     $height = $_GET['height'];
 else
     $height = 0;
 
-if (!is_numeric($width) || !is_numeric($height)) {
-    echo ('You want to set non numeric width or height...');
+if(!is_numeric($width) || !is_numeric($height)) {
+    echo('You want to set non numeric width or height...');
     exit;
 }
 //
@@ -63,99 +63,99 @@ if (!is_numeric($width) || !is_numeric($height)) {
 
 //did we cache anything?
 $cache_file = SVG_CACHE_DIR . md5($URL . '?' . $width . 'x' . $height) . '.svg';
-if (!file_exists($cache_file) or !SVG_CACHE) {
+if(!file_exists($cache_file) or !SVG_CACHE) {
     $URL = urldecode($URL);
-    if (strpos($URL, "http://") === false && strpos($URL, "ftp://") === false)
+    if(strpos($URL, "http://") === false && strpos($URL, "ftp://") === false)
         $URL = SVG_ROOT_PATH . $URL;
-    
+
     $fp = @fopen($URL, 'r');
-    
-    if ($fp) {
+
+    if($fp) {
         //PRINT HEADER
         header('Content-type: image/svg+xml');
-        
+
         //GET CONTENT
         $buff = '';
-        while (!feof($fp)) {
+        while(!feof($fp)) {
             $buff .= fread($fp, 4096);
         }
         fclose($fp);
-        
+
         //MODIFY TO PROPER WIDTH AND HEIGHT
-        if ($width > 0 || $height > 0) {
+        if($width > 0 || $height > 0) {
             #find main tag
             preg_match('#<svg(.*?)>#ism', $buff, $buff_match);
-            
+
             $buff_svg = $buff_match[0];
-            
+
             #remove width attribute
-            if (preg_match('#[\s]width=[\"]([0-9]++)(\.[0-9]++)??(.*)??[\"][\s]*#iU', $buff_svg, $match)) {
-                if (!$match[2])
+            if(preg_match('#[\s]width=[\"]([0-9]++)(\.[0-9]++)??(.*)??[\"][\s]*#iU', $buff_svg, $match)) {
+                if(!$match[2])
                     $real_width = $match[1];
                 else
                     $real_width = $match[1] + 1;
                 #change mm to pixels
-                if ($match[3] === 'mm')
+                if($match[3] === 'mm')
                     $real_width = round($real_width * 3);
-                
+
                 $buff_svg = str_replace($match[0], '', $buff_svg);
             }
-            
+
             #remove height attribute
-            if (preg_match('#[\s]height=[\"]([0-9]++)(\.[0-9]++)??([^\"]*)??[\"][\s]*#iU', $buff_svg, $match)) {
-                if (!$match[2])
+            if(preg_match('#[\s]height=[\"]([0-9]++)(\.[0-9]++)??([^\"]*)??[\"][\s]*#iU', $buff_svg, $match)) {
+                if(!$match[2])
                     $real_height = $match[1];
                 else
                     $real_height = $match[1] + 1;
                 #change mm to pixels
-                if ($match[3] === 'mm')
+                if($match[3] === 'mm')
                     $real_height = round($real_height * 3);
-                
+
                 $buff_svg = str_replace($match[0], '', $buff_svg);
             }
-            
+
             #remove viewBox attribute
-            if (preg_match("#viewBox\=\"([^\"]*)\"#i", $buff_svg, $match)) {
-                if ($match[1]) {
-                    if (strpos($match[1], ',') !== false)
+            if(preg_match("#viewBox\=\"([^\"]*)\"#i", $buff_svg, $match)) {
+                if($match[1]) {
+                    if(strpos($match[1], ',') !== false)
                         $exp = explode(",", $match[1]);
                     else
                         $exp = explode(" ", $match[1]);
-                    
+
                     $real_width  = $exp[2];
                     $real_height = $exp[3];
                 }
                 $buff_svg = str_replace($match[0], '', $buff_svg);
             }
-            
+
             #remove preserveAspectRatio=".*"
-            if (preg_match("#preserveAspectRatio\=[\"]?.*[\"]?#iU", $buff, $match))
+            if(preg_match("#preserveAspectRatio\=[\"]?.*[\"]?#iU", $buff, $match))
                 $buff = str_replace($match[0], '', $buff);
-            
-            if ($width == 0)
+
+            if($width == 0)
                 $width = $real_width;
-            if ($height == 0)
+            if($height == 0)
                 $height = $real_height;
-            
+
             $buff_svg = str_replace("<svg", '<svg preserveAspectRatio="none" width="' . $width . '" height="' . $height . '" viewBox="0 0 ' . $real_width . ' ' . $real_height . '"', $buff_svg);
-            
+
             $buff = str_replace($buff_match[0], $buff_svg, $buff);
-            
+
             exit($buff);
         }
-        
+
         //SAVE THE BUFFER TO CACHE
-        if (SVG_CACHE) {
+        if(SVG_CACHE) {
             $fp = fopen($cache_file, "w");
             fwrite($fp, $buff);
             fclose($fp);
         }
-        
+
         //PRINT BUFFER    
-        echo ($buff);
-        
+        echo($buff);
+
     } else {
-        echo ('Sorry, but <b>' . $URL . '</b> doesn\'t exist...');
+        echo('Sorry, but <b>' . $URL . '</b> doesn\'t exist...');
     }
 } else {
     //yes we got the cache, so print it immediately
@@ -166,7 +166,7 @@ if (!file_exists($cache_file) or !SVG_CACHE) {
     fclose($fp);
 
     //PRINT CACHE
-    echo ($buff);
+    echo($buff);
 }
 //
 ?>
