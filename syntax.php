@@ -18,95 +18,83 @@ require_once(DOKU_PLUGIN . 'syntax.php');
  * All DokuWiki plugins to extend the parser/rendering mechanism
  * need to inherit from this class
  */
-class syntax_plugin_svgpureInsert extends DokuWiki_Syntax_Plugin {
+class syntax_plugin_svgpureinsert extends DokuWiki_Syntax_Plugin {
 
     function getType() {
         return 'substition';
     }
 
+    /**
+     * Returns a lower sort than image syntax
+     *
+     * @return int 319
+     */
     function getSort() {
         return 319;
     }
 
+    /**
+     * Register pattern
+     *
+     * Just like image syntax but grab any .svg
+     *
+     * @param string $mode
+     */
     function connectTo($mode) {
-        $this->Lexer->addEntryPattern('\{\{[^\}\{]*?\.svg(?=.*?\}\})', $mode, 'plugin_svgpureInsert');
-        $this->Lexer->addPattern('[^\}\{]+', 'plugin_svgpureInsert');
-        $this->Lexer->addExitPattern('.*?\}\}', 'plugin_svgpureInsert');
+        $this->Lexer->addSpecialPattern('\{\{[^\}]+?(?:\.svg)[^\}]*?\}\}', $mode, 'plugin_svgpureinsert');
     }
 
-    function handle($match, $state, $pos, &$handler) {
-        switch($state) {
-            case DOKU_LEXER_ENTER:
-                $GLOBALS['data_svgpureInsert'] = array();
-                if(preg_match("#([ ]+)?([A-Za-z0-9\-_\*&\^%\?\$\#\.@\!:/]+)\.svg#", $match, $p_match)) {
-                    //align
-                    if($p_match[1])
-                        $GLOBALS['data_svgpureInsert']['align'] = ' align="right"';
-                    else
-                        $GLOBALS['data_svgpureInsert']['align'] = '';
-                    //
+    /**
+     * Parse parameters from syntax
+     *
+     * @param string $match
+     * @param int $state
+     * @param int $pos
+     * @param Doku_Handler $handler
+     * @return array|bool
+     */
+    function handle($match, $state, $pos, Doku_Handler $handler) {
+        // default data
+        $data = array(
+            'id'     => '',
+            'title'  => '',
+            'align'  => '',
+            'width'  => 0,
+            'height' => 0,
+            'cache'  => 'cache'
+        );
 
-                    //src
-                    $GLOBALS['data_svgpureInsert']['src'] = $p_match[2];
-                    if(strpos($GLOBALS['data_svgpureInsert']['src'], "http://") === false && strpos($GLOBALS['data_svgpureInsert']['src'], "ftp://") === false)
-                        $GLOBALS['data_svgpureInsert']['src'] = 'data/media' . str_replace(':', '/', $GLOBALS['data_svgpureInsert']['src']);
-                    $GLOBALS['data_svgpureInsert']['src'] = urlencode($GLOBALS['data_svgpureInsert']['src'] . '.svg');
-                    //
-                }
-                break;
+        $match = substr($match, 2, -2);
+        list($id, $title) = explode('|', $match, 2);
 
-            case DOKU_LEXER_MATCHED:
-                if(preg_match("#(\?[0-9]+)?(x[0-9]+)?([ ]+)?(\|.*)?#", $match, $p_match)) {
-                    //align
-                    if($GLOBALS['data_svgpureInsert']['align'] && $p_match[3])
-                        $GLOBALS['data_svgpureInsert']['align'] = ' class="mediacenter"';
-                    elseif($p_match[3])
-                        $GLOBALS['data_svgpureInsert']['align'] = ' align="left"';
-                    //
-
-                    //caption
-                    if($p_match[4])
-                        $GLOBALS['data_svgpureInsert']['caption'] = trim(substr($p_match[4], 1));
-                    //
-
-                    //width
-                    if($p_match[1])
-                        $GLOBALS['data_svgpureInsert']['width'] = trim(substr($p_match[1], 1));
-                    //
-
-                    //height
-                    if($p_match[2])
-                        $GLOBALS['data_svgpureInsert']['height'] = trim(substr($p_match[2], 1));
-                    //
-
-                    //get proper image size when only width given
-                    if($GLOBALS['data_svgpureInsert']['width'] && !$GLOBALS['data_svgpureInsert']['height']) {
-                        $dimension                               = $this->readSVGsize($GLOBALS['data_svgpureInsert']['src']);
-                        $prop                                    = $GLOBALS['data_svgpureInsert']['width'] / $dimension[0];
-                        $GLOBALS['data_svgpureInsert']['height'] = round($dimension[1] * $prop);
-                    } elseif(!$GLOBALS['data_svgpureInsert']['width'] && !$GLOBALS['data_svgpureInsert']['height']) {
-                        $dimension                               = $this->readSVGsize($GLOBALS['data_svgpureInsert']['src']);
-                        $GLOBALS['data_svgpureInsert']['height'] = $dimension[1];
-                        $GLOBALS['data_svgpureInsert']['width']  = $dimension[0];
-                    }
-                    //
-                }
-                break;
-
-            case DOKU_LEXER_EXIT:
-                if(!$GLOBALS['data_svgpureInsert']['width'] or !$GLOBALS['data_svgpureInsert']['height']) {
-                    $dimension                               = $this->readSVGsize($GLOBALS['data_svgpureInsert']['src']);
-                    $GLOBALS['data_svgpureInsert']['height'] = $dimension[1];
-                    $GLOBALS['data_svgpureInsert']['width']  = $dimension[0];
-                }
-                return $GLOBALS['data_svgpureInsert'];
-            default:
-                return 0;
+        // alignment
+        if(substr($id, 0, 1) == ' ') {
+            if(substr($id, -1, 1) == ' ') {
+                $data['align'] = 'center';
+            } else {
+                $data['align'] = 'right';
+            }
+        } elseif(substr($id, -1, 1) == ' ') {
+            $data['align'] = 'left';
         }
+
+        list($id, $params) = explode('?', $id, 2);
+
+        // id and title
+        $data['id'] = ($id);
+        $data['title'] = trim($title);
+
+        // size
+        if(preg_match('/(\d+)(x(\d+))?/', $params, $m)) {
+            $data['width']  = (int) $m[1];
+            $data['height'] = (int) $m[3];
+        }
+
+        return $data;
     }
 
-    function render($mode, &$renderer, $data) {
-        if($mode == 'xhtml' && $data) {
+    function render($format, Doku_Renderer $renderer, $data) {
+        if($format == 'xhtml' && $data) {
             $path = ($this->is_ssl() ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . str_replace('doku.php', '', $_SERVER['SCRIPT_NAME']) . 'lib/plugins/svgpureInsert/';
             $renderer->doc .= '<iframe src="' . $path . 'svgpureInsert.php?url=' . $data['src'] . '&width=' . $data['width'] . '&height=' . $data['height'] . '" ' . $data['align'] . ' width="' . $data['width'] . '" height="' . $data['height'] . '" title="' . $data['caption'] . '" frameborder="0"></iframe>';
             return true;
