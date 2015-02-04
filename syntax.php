@@ -19,16 +19,6 @@ require_once(DOKU_PLUGIN . 'syntax.php');
  * need to inherit from this class
  */
 class syntax_plugin_svgpureInsert extends DokuWiki_Syntax_Plugin {
-    function getInfo() {
-        return array(
-            'author' => 'Leszek Piatek',
-            'email'  => 'lpiatek@gmail.com',
-            'date'   => '2009-03-27',
-            'name'   => 'svgpureInsert Plugin',
-            'desc'   => 'Inserts a non png or otherwise modified svg file, just its clean svg/image+xml version.',
-            'url'    => 'http://wiki.splitbrain.org/plugin:svg_pureInsert'
-        );
-    }
 
     function getType() {
         return 'substition';

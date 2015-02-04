@@ -1,0 +1,7 @@
+base   svgpureinsert
+author Leszek Piatek
+email  lpiatek@gmail.com
+date   2015-02-04
+name   svgpureInsert Plugin
+desc   Inserts a non png or otherwise modified svg file, just its clean svg/image+xml version.
+url    http://wiki.splitbrain.org/plugin:svg_pureInsert
