@@ -115,56 +115,85 @@ class syntax_plugin_svgpureinsert extends DokuWiki_Syntax_Plugin {
         return false;
     }
 
-    function readSVGsize($file) {
-        $file = urldecode($file);
+    /**
+     * Parse te given XML attributes into an array
+     *
+     * @author troelskn
+     * @link http://stackoverflow.com/a/1083821/172068
+     * @param $input
+     * @return array
+     */
+    public static function parseAttributes($input) {
+        $dom = new DomDocument();
+        $dom->loadHtml("<html $input />");
+        $attributes = array();
+        foreach ($dom->documentElement->attributes as $name => $attr) {
+            $attributes[$name] = $attr->value;
+        }
+        return $attributes;
+    }
 
-        $exp = explode('.', $file);
-        $exp = end($exp);
+    /**
+     * Calculates pixel size for any given SVG size
+     *
+     * @param $value
+     * @return int
+     */
+    public static function convertToPixel($value) {
+        if(!preg_match('/^(\d+?(\.\d*)?)(in|em|ex|px|pt|pc|cm|mm)?$/', $value, $m)) return 0;
 
-        if($exp != 'svg') {
-            return array(
-                1,
-                1
-            );
+        $digit = (double) $m[1];
+        $unit  = (string) $m[3];
+
+        $dpi = 72;
+        $conversions = array(
+            'in' => $dpi,
+            'em' => 16,
+            'ex' => 12,
+            'px' => 1,
+            'pt' => $dpi/72, # 1/27 of an inch
+            'pc' => $dpi/6, # 1/6 of an inch
+            'cm' => $dpi/2.54, # inch to cm
+            'mm' => $dpi/(2.54*10), # inch to cm,
+        );
+
+        if(isset($conversions[$unit])) {
+            $digit = $digit * (float) $conversions[$unit];
         }
 
-        $fp = @fopen($file, 'r');
-        if($fp) {
-            $buff = '';
-            while(!feof($fp)) {
-                $buff .= fread($fp, 128);
-                if(strpos($buff, "width=") !== false && strpos($buff, "height=") !== false) {
-                    $buff .= fread($fp, 128);
-                    break;
-                }
-            }
-            fclose($fp);
-            preg_match("#[\s]width=[\"]([0-9]++)(\.[0-9]++)??(.*)??[\"]#msiU", $buff, $match);
+        return ceil($digit);
+    }
 
-            #if size with dot, just round whole image 1px...
-            if(!$match[2])
-                $width = $match[1];
-            else
-                $width = $match[1] + 1;
+    /**
+     * Read the Size of an SVG from its contents
+     *
+     * @param string $file local SVG file (or part of it)
+     * @return array
+     */
+    public static function readSVGsize($file) {
+        $default = array(100, 100);
 
-            #change mm to pixels
-            if($match[3] == 'mm')
-                $width = round($width * 3);
+        $file = io_readFile($file, false);
+        if(!$file) return $default;
+        if(!preg_match('/<svg([^>]*)>/s', $file, $m)) return $default;
+        $attributes = self::parseAttributes($m[1]);
 
-            preg_match("#[\s]height=[\"]([0-9]++)(\.[0-9]++)??(.*)??[\"]#msiU", $buff, $match);
+        $width = $attributes['width'];
+        $height = $attributes['height'];
 
-            if(!$match[2])
-                $height = $match[1];
-            else
-                $height = $match[1] + 1;
-            #change mm to pixels
-            if($match[3] == 'mm')
-                $height = round($height * 3);
-        } else
-            return array(
-                1,
-                1
-            );
+        if(substr($width,-1,1) == '%' || substr($height,-1,1) == '%') {
+            // dimensions are in percent, try viewBox instead
+            list(,,$width, $height) = explode(' ', $attributes['viewbox']);
+        }
+
+        // fix units
+        $width  = self::convertToPixel($width);
+        $height = self::convertToPixel($height);
+
+        // if calculation failed use default
+        if(!$width) $width = $default[0];
+        if(!$height) $height = $default[0];
+
         return array(
             $width,
             $height

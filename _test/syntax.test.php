@@ -38,4 +38,12 @@ class syntax_plugin_svgpureinsert_test extends DokuWikiTest {
         );
         $this->assertEquals($calls, array_map('stripbyteindex', $parser_response));
     }
+
+    public function test_svgsize() {
+        $dimension = syntax_plugin_svgpureinsert::readSVGsize(__DIR__.'/svglogo.svg');
+        $this->assertEquals(array(300, 300), $dimension);
+
+        $dimension = syntax_plugin_svgpureinsert::readSVGsize(__DIR__.'/dokuwiki.svg');
+        $this->assertEquals(array(745, 1053), $dimension);
+    }
 }
