@@ -6,13 +6,9 @@
  * @author     Leszek Piatek <lpiatek@gmail.com>
  */
 
-if(!defined('DOKU_INC'))
-    exit;
+if(!defined('DOKU_INC')) exit;
+if(!defined('DOKU_PLUGIN')) define('DOKU_PLUGIN', DOKU_INC . 'lib/plugins/');
 
-if(!defined('DOKU_PLUGIN'))
-    define('DOKU_PLUGIN', DOKU_INC . 'lib/plugins/');
-
-require_once(DOKU_PLUGIN . 'syntax.php');
 
 /**
  * All DokuWiki plugins to extend the parser/rendering mechanism
@@ -81,7 +77,7 @@ class syntax_plugin_svgpureinsert extends DokuWiki_Syntax_Plugin {
         list($id, $params) = explode('?', $id, 2);
 
         // id and title
-        $data['id'] = ($id);
+        $data['id'] = trim($id);
         $data['title'] = trim($title);
 
         // size
@@ -90,113 +86,40 @@ class syntax_plugin_svgpureinsert extends DokuWiki_Syntax_Plugin {
             $data['height'] = (int) $m[3];
         }
 
+        // read missing size values from the file itself
+        if(!$data['width'] || !$data['height']) {
+            /** @var helper_plugin_svgpureinsert $hlp */
+            $hlp = plugin_load('helper', 'svgpureinsert');
+            list(, $w, $h) = $hlp->getAdjustedSVG($data['id']);
+
+            if(!$data['width']) {
+                $data['width']  = $w;
+                $data['height'] = $h;
+            } else {
+                if($w>$h) {
+                    $data['height'] =  $data['width'] * $w/$h;
+                } else {
+                    $data['height'] =  $data['width'] * $h/$w;
+                }
+            }
+        }
+
         return $data;
     }
 
     function render($format, Doku_Renderer $renderer, $data) {
-        if($format == 'xhtml' && $data) {
-            $path = ($this->is_ssl() ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . str_replace('doku.php', '', $_SERVER['SCRIPT_NAME']) . 'lib/plugins/svgpureInsert/';
-            $renderer->doc .= '<iframe src="' . $path . 'svgpureInsert.php?url=' . $data['src'] . '&width=' . $data['width'] . '&height=' . $data['height'] . '" ' . $data['align'] . ' width="' . $data['width'] . '" height="' . $data['height'] . '" title="' . $data['caption'] . '" frameborder="0"></iframe>';
-            return true;
-        }
-        return false;
-    }
+        if($format != 'xhtml') return false;
 
-    //to support older dokuwikis just repeat function
-    function is_ssl() {
-        if(isset($_SERVER['HTTPS'])) {
-            if('on' == strtolower($_SERVER['HTTPS']))
-                return true;
-            if('1' == $_SERVER['HTTPS'])
-                return true;
-        } elseif(isset($_SERVER['SERVER_PORT']) && ('443' == $_SERVER['SERVER_PORT'])) {
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Parse te given XML attributes into an array
-     *
-     * @author troelskn
-     * @link http://stackoverflow.com/a/1083821/172068
-     * @param $input
-     * @return array
-     */
-    public static function parseAttributes($input) {
-        $dom = new DomDocument();
-        $dom->loadHtml("<html $input />");
-        $attributes = array();
-        foreach ($dom->documentElement->attributes as $name => $attr) {
-            $attributes[$name] = $attr->value;
-        }
-        return $attributes;
-    }
-
-    /**
-     * Calculates pixel size for any given SVG size
-     *
-     * @param $value
-     * @return int
-     */
-    public static function convertToPixel($value) {
-        if(!preg_match('/^(\d+?(\.\d*)?)(in|em|ex|px|pt|pc|cm|mm)?$/', $value, $m)) return 0;
-
-        $digit = (double) $m[1];
-        $unit  = (string) $m[3];
-
-        $dpi = 72;
-        $conversions = array(
-            'in' => $dpi,
-            'em' => 16,
-            'ex' => 12,
-            'px' => 1,
-            'pt' => $dpi/72, # 1/27 of an inch
-            'pc' => $dpi/6, # 1/6 of an inch
-            'cm' => $dpi/2.54, # inch to cm
-            'mm' => $dpi/(2.54*10), # inch to cm,
+        $attr = array(
+            'src' => ml($data['id'], array('w'=>$data['width'], 'h'=>$data['height']), true, '&'),
+            'width' => $data['width'],
+            'height' => $data['height'],
+            'class' => 'svgpureinsert media'.$data['align'],
+            'frameborder' => 0,
+            'title' => $data['title']
         );
 
-        if(isset($conversions[$unit])) {
-            $digit = $digit * (float) $conversions[$unit];
-        }
-
-        return ceil($digit);
-    }
-
-    /**
-     * Read the Size of an SVG from its contents
-     *
-     * @param string $file local SVG file (or part of it)
-     * @return array
-     */
-    public static function readSVGsize($file) {
-        $default = array(100, 100);
-
-        $file = io_readFile($file, false);
-        if(!$file) return $default;
-        if(!preg_match('/<svg([^>]*)>/s', $file, $m)) return $default;
-        $attributes = self::parseAttributes($m[1]);
-
-        $width = $attributes['width'];
-        $height = $attributes['height'];
-
-        if(substr($width,-1,1) == '%' || substr($height,-1,1) == '%') {
-            // dimensions are in percent, try viewBox instead
-            list(,,$width, $height) = explode(' ', $attributes['viewbox']);
-        }
-
-        // fix units
-        $width  = self::convertToPixel($width);
-        $height = self::convertToPixel($height);
-
-        // if calculation failed use default
-        if(!$width) $width = $default[0];
-        if(!$height) $height = $default[0];
-
-        return array(
-            $width,
-            $height
-        );
+        $renderer->doc .= '<iframe '.buildAttributes($attr).'></iframe>';
+        return true;
     }
 }
