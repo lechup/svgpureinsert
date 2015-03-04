@@ -19,7 +19,8 @@ class helper_plugin_svgpureinsert extends DokuWiki_Plugin {
      * @return bool|array either array($file, $width, $height) or false if no cache available
      */
     public function getAdjustedSVG($id, $cachetime = -1) {
-        $cachefile = getCacheName($id . $this->getInfo()['date'], '.svg');
+        $info = $this->getInfo();
+        $cachefile = getCacheName($id . $info['date'], '.svg');
         $cachedate = @filemtime($cachefile);
         if($cachedate && $cachetime < (time() - $cachedate)) {
             list($width, $height) = $this->readSVGsize($cachefile);
