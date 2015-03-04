@@ -90,16 +90,19 @@ class syntax_plugin_svgpureinsert extends DokuWiki_Syntax_Plugin {
         if(!$data['width'] || !$data['height']) {
             /** @var helper_plugin_svgpureinsert $hlp */
             $hlp = plugin_load('helper', 'svgpureinsert');
-            list(, $w, $h) = $hlp->getAdjustedSVG($data['id']);
+            $res = $hlp->getAdjustedSVG($data['id']);
+            if($res) {
+                list(, $w, $h) = $res;
 
-            if(!$data['width']) {
-                $data['width']  = $w;
-                $data['height'] = $h;
-            } else {
-                if($w>$h) {
-                    $data['height'] =  $data['width'] * $w/$h;
+                if(!$data['width']) {
+                    $data['width']  = $w;
+                    $data['height'] = $h;
                 } else {
-                    $data['height'] =  $data['width'] * $h/$w;
+                    if($w > $h) {
+                        $data['height'] = $data['width'] * $w / $h;
+                    } else {
+                        $data['height'] = $data['width'] * $h / $w;
+                    }
                 }
             }
         }
