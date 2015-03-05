@@ -99,9 +99,9 @@ class syntax_plugin_svgpureinsert extends DokuWiki_Syntax_Plugin {
                     $data['height'] = $h;
                 } else {
                     if($w > $h) {
-                        $data['height'] = $data['width'] * $w / $h;
+                        $data['height'] = ceil($data['width'] * $w / $h);
                     } else {
-                        $data['height'] = $data['width'] * $h / $w;
+                        $data['height'] = ceil($data['width'] * $h / $w);
                     }
                 }
             }
