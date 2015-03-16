@@ -1,7 +1,7 @@
 base   svgpureinsert
 author Leszek Piatek
 email  lpiatek@gmail.com
-date   2015-02-12
+date   2015-03-16
 name   Pure SVG Insert Plugin
 desc   Inserts an SVG image as-is to be rendered by compatible browsers.
 url    https://www.dokuwiki.org/plugin:svgpureinsert
