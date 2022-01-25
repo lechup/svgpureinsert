@@ -20,7 +20,7 @@ Security advisory
 Allowing SVG Upload equals to allowing HTML + JS upload.
 Details can be found [here](http://security.stackexchange.com/questions/11384/exploits-or-other-security-risks-with-svg-upload)
 
-**Do not allow everyone to post SVG's! to Your DokuWiki**
+**Do not allow everyone to post SVGs to Your DokuWiki**
 
 License
 ===
